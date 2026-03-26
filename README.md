@@ -1,6 +1,6 @@
-# @json-form/zod-schema-augmenter
+# @gondola/zod-schema-augmenter
 
-> Automatically augment Zod schemas with SKOS-inspired metadata, sourced from industry-standard configurations.
+> Automatically augment Zod schemas with SKOS-inspired metadata, sourced from industry-standard configurations. Generate build-time JSON Schemas with preserved metadata for React applications.
 
 ## Features
 
@@ -11,48 +11,131 @@
   - `package.json` (npm/pnpm conventions)
   - Git config (user.email, user.name)
 - **Preserves User Data** - Keeps user-defined attributes like `rank`
+- **Build-time Generation** - CLI tool to generate JSON Schemas at build time
+- **Metadata Preservation** - Read JSON Schema back into Zod while preserving all custom metadata
 
 ## Installation
 
 ```bash
-npm install @json-form/zod-schema-augmenter
+npm install @gondola/zod-schema-augmenter
 # or
-pnpm add @json-form/zod-schema-augmenter
+pnpm add @gondola/zod-schema-augmenter
 ```
 
 ## Quick Start
 
-```typescript
-import * as z from "zod"
-import { augment } from "@json-form/zod-schema-augmenter"
+### Runtime Usage
 
-// Define schema with only rank (user-defined)
-const UserSchema = z
-  .object({
-    name: z.string().meta({ rank: 0 }),
-    email: z.string().email().meta({ rank: 1 }),
-  })
-  .meta({ rank: 1 })
+```typescript
+import * as z from "zod";
+import { augmentSchema } from "@gondola/zod-schema-augmenter";
+
+// Define schema with rank (user-defined ordering)
+const UserSchema = z.object({
+  name: z.string().meta({ rank: 0 }),
+  email: z.string().email().meta({ rank: 1 }),
+});
 
 // Create a registry to track schema metadata
-const MyRegistry = z.registry<{ registry: string; concept: string }>()
+const MyRegistry = z.registry<{ registry: string; concept: string }>();
 
 // Register the schema with a concept name
 MyRegistry.add(UserSchema, {
   registry: "taxonomy",
   concept: "user",
-})
+});
 
 // Augment with automatic metadata
-const augmented = augment(UserSchema, MyRegistry)
+const augmented = augmentSchema(UserSchema, MyRegistry);
 
 // Access augmented metadata via .meta()
-const meta = augmented.meta()
-console.log(meta.uri)
-// => "#/taxonomy/user/item/user"
+const meta = augmented.meta();
+console.log(meta.uri);
+// => "#/taxonomy/concept/user"
 ```
 
-## Configuration
+### Build-time Usage (CLI)
+
+Generate enriched JSON Schemas at build time for use in React applications:
+
+```bash
+npx zod-augmenter build \
+  --input schema.ts \
+  --output dist/schema.json \
+  --registry taxonomy \
+  --concept user
+```
+
+### Reading JSON Schema Back
+
+Zod v4 supports reading JSON Schema back while preserving custom metadata:
+
+```typescript
+import * as z from "zod";
+import * as fs from "fs";
+
+// Read the JSON Schema file
+const jsonSchema = JSON.parse(fs.readFileSync("dist/schema.json", "utf-8"));
+
+// Parse back to Zod - metadata is preserved!
+const zodSchema = z.fromJSONSchema(jsonSchema);
+
+const meta = zodSchema.meta();
+console.log(meta.broader);   // "#/taxonomy"
+console.log(meta.narrower);  // ["#/taxonomy/concept/user/item/name", ...]
+```
+
+## CLI Reference
+
+### Installation
+
+After installing the package, the CLI is available via `npx`:
+
+```bash
+npx zod-augmenter build [options]
+```
+
+### Options
+
+| Option | Short | Required | Description |
+|--------|-------|----------|-------------|
+| `--input` | `-i` | Yes | Path to TypeScript file exporting the schema |
+| `--output` | `-o` | Yes | Output path for the JSON Schema file |
+| `--registry` | `-r` | Yes | Registry name (e.g., "taxonomy") |
+| `--concept` | `-c` | Yes | Root concept name (e.g., "user") |
+| `--export` | `-e` | No | Export name in input file (default: "schema") |
+| `--help` | `-h` | No | Show help message |
+
+### Example
+
+```bash
+# Generate JSON Schema from a schema file
+npx zod-augmenter build \
+  --input ./schemas/data-provider.ts \
+  --output ./dist/data-provider-schema.json \
+  --registry taxonomy \
+  --concept data-provider \
+  --export DataProviderSchema
+
+# Output:
+# ✅ JSON Schema written to: ./dist/data-provider-schema.json
+#    URI: #/taxonomy/concept/data-provider
+#    Broader: #/taxonomy
+```
+
+## Input File Format
+
+The CLI expects a TypeScript file that exports a Zod schema:
+
+```typescript
+// schema.ts
+import * as z from "zod";
+
+export const DataProviderSchema = z.object({
+  name: z.string().meta({ rank: 0 }),
+  email: z.string().email().meta({ rank: 1 }),
+});
+```
 
 ## Metadata Schema
 
@@ -60,15 +143,15 @@ console.log(meta.uri)
 
 ```typescript
 interface SchemaMetadata {
-  uri: string                    // Unique identifier in taxonomy
-  broader: string | null         // Parent concept URI
-  narrower: string[]            // Child concept URIs
-  previous: string | null       // Previous sibling URI
-  next: string | null          // Next sibling URI
-  created: string              // ISO 8601 timestamp
-  creator: string[]           // Creators (from git/package.json)
-  publisher: string[]         // Publishers (from package.json)
-  rank: number               // User-defined ordinal position
+  uri: string;           // Unique identifier in taxonomy
+  broader: string | null;     // Parent concept URI
+  narrower: string[];        // Child concept URIs
+  previous: string | null;   // Previous sibling URI
+  next: string | null;       // Next sibling URI
+  created: string;           // ISO 8601 date
+  creator: string[];         // Creators (from git/package.json)
+  publisher: string[];       // Publishers (from package.json)
+  rank: number;              // User-defined ordinal position
 }
 ```
 
@@ -76,8 +159,8 @@ interface SchemaMetadata {
 
 ```typescript
 interface FieldMetadata {
-  uri: string          // Resource URI
-  rank: number       // User-defined field order
+  uri: string;     // Resource URI
+  rank: number;    // User-defined field order
 }
 ```
 
@@ -97,13 +180,13 @@ interface FieldMetadata {
 The utility follows this URI pattern:
 
 ```
-#/{baseUri}/{domain}/{concept}[/item/{item}][/resource/{field}]
+#/{registry}/{node_type}/{concept}[/item/{item}][/resource/{field}]
 ```
 
 Examples:
-- Root concept: `#/taxonomy/concept/data-provider/authentication`
-- Item: `#/taxonomy/concept/data-provider/authentication/item/database`
-- Field: `#/taxonomy/concept/data-provider/authentication/item/database/resource/host`
+- Root concept: `#/taxonomy/concept/data-provider`
+- Item: `#/taxonomy/concept/data-provider/item/basic`
+- Field: `#/taxonomy/concept/data-provider/item/basic/resource/name`
 
 ## How It Works
 
@@ -124,11 +207,11 @@ Solution: Pass the child name via the `_uri` parameter - pre-compute the child U
 
 ### Discriminated Unions
 
-For discriminated unions, the library extracts the discriminator value (e.g., "database", "api") from `option.shape[discriminatorKey]._def.values[0]` to use as the child name in URIs.
+For discriminated unions, the library extracts the discriminator value (e.g., "database", "api") from the union options to use as the child name in URIs.
 
 ### Array Handling
 
-Arrays are handled by traversing into `schema._def.element`. The array itself doesn't get metadata - its element type becomes the child.
+Arrays are handled by traversing into the element type. The array itself doesn't get metadata - its element type becomes the child.
 
 ## License
 

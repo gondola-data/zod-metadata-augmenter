@@ -6,6 +6,9 @@
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
+  "bin": {
+    "zod-augmenter": "./dist/cli.js"
+  },
   "exports": {
     ".": {
       "import": "./dist/index.js",
@@ -18,7 +21,8 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
-    "example": "tsx example/index.ts"
+    "example": "tsx example/index.ts",
+    "build:example": "tsx example/build-schema.ts"
   },
   "dependencies": {
     "zod": "^4.0.0"
