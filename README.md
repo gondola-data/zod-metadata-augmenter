@@ -13,6 +13,7 @@
 - **Preserves User Data** - Keeps user-defined attributes like `rank`
 - **Build-time Generation** - CLI tool to generate JSON Schemas at build time
 - **Metadata Preservation** - Read JSON Schema back into Zod while preserving all custom metadata
+- **Schema Traversal** - Navigate augmented schemas using metadata relationships (narrower, previous, next)
 
 ## Installation
 
@@ -84,6 +85,61 @@ const meta = zodSchema.meta();
 console.log(meta.broader);   // "#/taxonomy"
 console.log(meta.narrower);  // ["#/taxonomy/concept/user/item/name", ...]
 ```
+
+### Schema Traversal
+
+After augmenting a schema, you can create a traversal object to navigate through the schema tree using metadata relationships:
+
+```typescript
+import * as z from "zod";
+import { augmentSchema, createTraversalObject } from "@gondola/zod-schema-augmenter";
+
+const UserSchema = z.object({
+  name: z.string().meta({ rank: 0 }),
+  email: z.string().email().meta({ rank: 1 }),
+  profile: z.object({
+    bio: z.string().meta({ rank: 0 }),
+  }).meta({ rank: 2 }),
+});
+
+const registry = z.registry<{ registry: string; concept: string }>();
+registry.add(UserSchema, { registry: "taxonomy", concept: "user" });
+
+const augmented = augmentSchema(UserSchema, registry);
+const traversal = createTraversalObject(augmented);
+
+// Navigate children
+traversal.narrower[0].meta.uri  // First child field
+
+// Navigate nested fields
+const profile = traversal.narrower.find(n => n.meta.uri.includes("profile"));
+profile?.narrower[0].meta.uri   // bio field
+
+// O(1) URI lookup
+traversal.byUri("#/taxonomy/concept/user/item/profile/resource/bio")?.meta.rank
+
+// Get path from root to any node
+import { getPathToNode, getSiblings, traverseAll } from "@gondola/zod-schema-augmenter";
+const path = getPathToNode(traversal, "#/taxonomy/concept/user/item/profile");
+```
+
+#### Traversal API
+
+| Function | Description |
+|----------|-------------|
+| `createTraversalObject(schema)` | Creates a navigable tree from an augmented schema |
+| `traversal.narrower` | Array of child nodes |
+| `traversal.previous` | Previous sibling node |
+| `traversal.next` | Next sibling node |
+| `traversal.byUri(uri)` | O(1) lookup by URI |
+| `findByUri(root, uri)` | Find node by URI |
+| `getPathToNode(root, uri)` | Get path from root to target |
+| `getSiblings(node)` | Get all sibling nodes |
+| `traverseAll(root)` | Iterate all nodes (generator) |
+| `getNodeDepth(root, node)` | Get depth of a node |
+| `countNodes(root)` | Count total nodes |
+
+See `example/traversal-demo.ts` for a complete example with the DataProvider schema.
 
 ## CLI Reference
 

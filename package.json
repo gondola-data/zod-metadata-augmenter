@@ -21,8 +21,9 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
-    "example": "tsx example/index.ts",
-    "build:example": "tsx example/build-schema.ts"
+    "example:augmenter": "tsx example/index.ts",
+    "build:example": "tsx example/build-schema.ts",
+    "example:traversal": "tsx example/traversal-demo.ts"
   },
   "dependencies": {
     "zod": "^4.0.0"

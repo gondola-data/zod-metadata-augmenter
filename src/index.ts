@@ -10,13 +10,14 @@
  * - **Sequential navigation** - Provides `previous`/`next` for sibling ordering
  * - **Source metadata** - Pulls `creator` and `publisher` from git/package.json
  * - **Preserves user data** - Keeps user-defined attributes like `rank`
+ * - **Schema traversal** - Navigate augmented schemas via metadata relationships
  *
  * ## Usage
  *
- * The `augment` function takes a schema and a Zod registry:
+ * The `augmentSchema` function takes a schema and a Zod registry:
  *
  * ```typescript
- * import { augment } from "@json-form/zod-schema-augmenter"
+ * import { augmentSchema, createTraversalObject } from "@gondola/zod-schema-augmenter"
  * import { z } from "zod"
  *
  * // Create a registry to track schema metadata
@@ -35,12 +36,17 @@
  * })
  *
  * // Augment with automatic metadata
- * const augmented = augment(UserSchema, MyRegistry)
+ * const augmented = augmentSchema(UserSchema, MyRegistry)
  *
  * // Access metadata via Zod's .meta() method
  * const meta = augmented.meta()
  * console.log(meta.uri)
- * // => "#/taxonomy/user/item/user" (or similar based on depth)
+ * // => "#/taxonomy/concept/user"
+ *
+ * // Create a traversal object for navigation
+ * const traversal = createTraversalObject(augmented)
+ * console.log(traversal.narrower[0].meta.uri) // First child
+ * console.log(traversal.byUri("#/taxonomy/concept/user/resource/name")?.meta.rank)
  * ```
  *
  * ## How It Works
@@ -64,7 +70,20 @@
  * - `rank`: User-defined ordinal for sorting (preserved if provided)
  */
 
+// Core augmentation
 export { augmentSchema, getSourceInfo } from "./augment";
+
+// Traversal utilities
+export {
+  createTraversalObject,
+  findByUri,
+  getNodesAtDepth,
+  getPathToNode,
+  traverseAll,
+  getSiblings,
+  getNodeDepth,
+  countNodes,
+} from "./traversal";
 
 export type {
   SchemaMetadata,
@@ -72,6 +91,12 @@ export type {
   SourceInfo,
   UnionMemberInfo,
 } from "./types";
+
+export type {
+  TraversalNode,
+  TraversalOptions,
+  TraversalPosition,
+} from "./traversal";
 
 // Re-export sources for direct access
 export {
