@@ -13,7 +13,7 @@ import * as z from "zod";
 import * as fs from "fs";
 import * as path from "path";
 import { fileURLToPath } from "url";
-import { augmentSchema } from "../src";
+import { augmentSchema } from "../src/index.cli";
 import { DataProviderSchema } from "./schema";
 
 // ES Module compatibility
