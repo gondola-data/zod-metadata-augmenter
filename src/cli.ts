@@ -146,12 +146,11 @@ function runBuild() {
   }
 
   // Build the inline script that does the augmentation
-  const augmentPath = path.resolve(__dirname, "..", "src", "augment.ts");
   const inlineScript = `
 import * as z from "zod";
 import * as fs from "fs";
 import * as path from "path";
-import { augmentSchema } from "${augmentPath}";
+import { augmentSchema } from "@gondola-data/zod-schema-augmenter/cli";
 
 interface Registry {
   registry: string;
@@ -228,7 +227,7 @@ console.log("URI:" + metadata.uri);
     });
 
     ps.on("close", (code) => {
-      // Clean up temp file
+  // Clean up temp file
       try {
         fs.unlinkSync(tempFile);
       } catch {}
