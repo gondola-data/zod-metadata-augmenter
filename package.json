@@ -1,8 +1,12 @@
 {
-  "name": "@gondola/zod-schema-augmenter",
+  "name": "@gondola-data/zod-schema-augmenter",
   "author": "jason.grein@gondola.io",
   "version": "0.1.0",
   "type": "module",
+  "repository": "https://github.com/gondola-data/zod-metadata-augmenter.git",
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com"
+  },
   "files": [
     "dist",
     "package.json",
