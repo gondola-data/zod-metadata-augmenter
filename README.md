@@ -1,4 +1,4 @@
-# @gondola/zod-schema-augmenter
+# @gondola-data/zod-schema-augmenter
 
 > Automatically augment Zod schemas with SKOS-inspired metadata, sourced from industry-standard configurations. Generate build-time JSON Schemas with preserved metadata for React applications.
 
@@ -18,9 +18,9 @@
 ## Installation
 
 ```bash
-npm install @gondola/zod-schema-augmenter
+npm install @gondola-data/zod-schema-augmenter
 # or
-pnpm add @gondola/zod-schema-augmenter
+pnpm add @gondola-data/zod-schema-augmenter
 ```
 
 ## Browser vs CLI Entry Points
@@ -33,12 +33,12 @@ The default entry point is browser-safe and includes only **traversal functional
 
 ```bash
 # Install normally
-npm install @gondola/zod-schema-augmenter
+npm install @gondola-data/zod-schema-augmenter
 ```
 
 ```typescript
 // Import traversal only (browser-safe)
-import { createTraversalObject, findByUri } from "@gondola/zod-schema-augmenter";
+import { createTraversalObject, findByUri } from "@gondola-data/zod-schema-augmenter";
 ```
 
 **Exports:**
@@ -53,14 +53,14 @@ The CLI entry point includes full functionality with source detection from git c
 // package.json - explicitly use CLI entry
 {
   "dependencies": {
-    "@gondola/zod-schema-augmenter": "github:gondola-data/zod-metadata-augmenter"
+    "@gondola-data/zod-schema-augmenter": "github:gondola-data/zod-metadata-augmenter"
   }
 }
 ```
 
 ```typescript
 // Import full functionality (Node.js required)
-import { augmentSchema, getSourceInfo } from "@gondola/zod-schema-augmenter/cli";
+import { augmentSchema, getSourceInfo } from "@gondola-data/zod-schema-augmenter/cli";
 ```
 
 **CLI Usage:**
@@ -70,15 +70,15 @@ npx zod-augmenter build --input schema.ts --output dist/schema.json
 
 Or import programmatically:
 ```typescript
-import { augmentSchema, createTraversalObject } from "@gondola/zod-schema-augmenter/cli";
+import { augmentSchema, createTraversalObject } from "@gondola-data/zod-schema-augmenter/cli";
 ```
 
 ### Entry Point Summary
 
 | Entry | Import Path | Use Case |
 |-------|-------------|----------|
-| Default (`.`) | `@gondola/zod-schema-augmenter` | Browser apps - traversal only |
-| CLI (`./cli`) | `@gondola/zod-schema-augmenter/cli` | Node.js/CLI - full features |
+| Default (`.`) | `@gondola-data/zod-schema-augmenter` | Browser apps - traversal only |
+| CLI (`./cli`) | `@gondola-data/zod-schema-augmenter/cli` | Node.js/CLI - full features |
 
 ---
 
@@ -88,7 +88,7 @@ import { augmentSchema, createTraversalObject } from "@gondola/zod-schema-augmen
 
 ```typescript
 import * as z from "zod";
-import { augmentSchema } from "@gondola/zod-schema-augmenter";
+import { augmentSchema } from "@gondola-data/zod-schema-augmenter";
 
 // Define schema with rank (user-defined ordering)
 const UserSchema = z.object({
@@ -151,7 +151,7 @@ After augmenting a schema, you can create a traversal object to navigate through
 
 ```typescript
 import * as z from "zod";
-import { augmentSchema, createTraversalObject } from "@gondola/zod-schema-augmenter";
+import { augmentSchema, createTraversalObject } from "@gondola-data/zod-schema-augmenter";
 
 const UserSchema = z.object({
   name: z.string().meta({ rank: 0 }),
@@ -178,7 +178,7 @@ profile?.narrower[0].meta.uri   // bio field
 traversal.byUri("#/taxonomy/concept/user/item/profile/resource/bio")?.meta.rank
 
 // Get path from root to any node
-import { getPathToNode, getSiblings, traverseAll } from "@gondola/zod-schema-augmenter";
+import { getPathToNode, getSiblings, traverseAll } from "@gondola-data/zod-schema-augmenter";
 const path = getPathToNode(traversal, "#/taxonomy/concept/user/item/profile");
 ```
 

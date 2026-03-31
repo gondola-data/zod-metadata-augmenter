@@ -8,7 +8,7 @@
  * ## Usage
  *
  * ```typescript
- * import { augmentSchema, createTraversalObject } from "@gondola/zod-schema-augmenter";
+ * import { augmentSchema, createTraversalObject } from "@gondola-data/zod-schema-augmenter/cli";
  * import * as z from "zod";
  *
  * const UserSchema = z.object({
