@@ -79,7 +79,7 @@ function deriveSlug(name: string): string {
  */
 function generateUri(
   broaderUri: string,
-  schema: z.zodTypeAny,
+  schema: z.ZodTypeAny,
   name: string | null,
 ): string {
   if (!name) return broaderUri;
@@ -143,6 +143,7 @@ function getSchemaName(schema: z.ZodTypeAny): string | null {
  * @returns The node type string
  */
 function _nodeType(schema: z.ZodTypeAny, count: number = 0): string {
+  const rawSchema = schema as any;
   const schemaType = schema.type;
 
   // Base case: primitive/leaf types (string, number, boolean, enum, etc.)
@@ -154,12 +155,16 @@ function _nodeType(schema: z.ZodTypeAny, count: number = 0): string {
 
   // Handle arrays - traverse into the element type
   if (schemaType === "array") {
-    return _nodeType(schema._def.element, count + 1);
+    const child = rawSchema._def?.element ?? rawSchema._def?.type;
+    if (child) {
+      return _nodeType(child, count + 1);
+    }
+    return _nodeType(schema, count + 1);
   }
 
   // Handle objects - traverse into first field
   if (schemaType === "object") {
-    const shape = schema._def.shape;
+    const shape = rawSchema._def?.shape ?? {};
     const keys = Object.keys(shape);
     if (keys.length > 0) {
       return _nodeType(shape[keys[0]], count + 1);
@@ -172,8 +177,8 @@ function _nodeType(schema: z.ZodTypeAny, count: number = 0): string {
 
   // Handle unions (including discriminatedUnion) - traverse first option
   if (schemaType === "union") {
-    const options = schema._def.options;
-    if (options && options.length > 0) {
+    const options = rawSchema._def?.options ?? rawSchema.def?.options ?? [];
+    if (options.length > 0) {
       return _nodeType(options[0], count + 1);
     }
   }
@@ -209,7 +214,7 @@ const metadataCache = new Map<z.ZodTypeAny, Record<string, unknown>>();
  */
 function collectMetadata(
   schema: z.ZodTypeAny,
-  registry: z.ZodTypeAny,
+  registry: any,
   sourceInfo: SourceInfo,
   broaderUri: string | null,
   _uri: string | null = null,
@@ -227,9 +232,14 @@ function collectMetadata(
     );
 
   // Get children based on schema type - include key, schema, and rank
+  const rawSchema = schema as any;
   let children: { key: string; schema: z.ZodTypeAny; rank: number }[] = [];
-  if (schema.type === "object") {
-    const ranked = Object.entries(schema.shape)
+  if (schema instanceof z.ZodObject || schema.type === "object") {
+    const shape = (rawSchema._def?.shape ?? rawSchema.shape ?? {}) as Record<
+      string,
+      z.ZodTypeAny
+    >;
+    const ranked = Object.entries(shape)
       .map(([key, value]) => ({
         key,
         value,
@@ -241,8 +251,11 @@ function collectMetadata(
       schema: r.value,
       rank: r.rank,
     }));
-  } else if (schema.type === "union") {
-    const ranked = schema.def.options
+  } else if (schema instanceof z.ZodUnion || schema.type === "union") {
+    const options = (rawSchema._def?.options ??
+      rawSchema.def?.options ??
+      []) as z.ZodTypeAny[];
+    const ranked = options
       .map((option, index) => ({
         option,
         rank:
@@ -251,25 +264,22 @@ function collectMetadata(
       }))
       .sort((a, b) => a.rank - b.rank);
 
-    // For discriminated unions, extract the discriminator value from each option
-    // @ts-ignore - Zod internal
-    const discriminatorKey = schema._def.discriminator;
+    const discriminatorKey = rawSchema._def?.discriminator;
 
     children = ranked.map((r) => {
+      const optionShape =
+        (r.option as any)._def?.shape ?? (r.option as any).shape ?? {};
       let key: string;
 
-      if (discriminatorKey && r.option.shape[discriminatorKey]) {
-        // Get the literal value from the discriminator field
-        const discriminatorField = r.option.shape[discriminatorKey];
-        // @ts-ignore - Zod internal
-        const literalValues = discriminatorField._def?.values;
+      if (discriminatorKey && optionShape[discriminatorKey]) {
+        const discriminatorField = optionShape[discriminatorKey];
+        const literalValues = (discriminatorField as any)?._def?.values;
         key =
           literalValues?.[0] ??
           getSchemaName(r.option) ??
           r.option.constructor?.name ??
           `option_${r.index}`;
       } else {
-        // Fallback for non-discriminated unions
         key =
           getSchemaName(r.option) ??
           r.option.constructor?.name ??
@@ -278,10 +288,12 @@ function collectMetadata(
 
       return { key, schema: r.option, rank: r.rank };
     });
-  } else if (schema.type === "array") {
-    // For arrays, traverse into the element type as a child
-    const element = schema._def.element;
-    children = [{ key: "items", schema: element, rank: 0 }];
+  } else if (schema instanceof z.ZodArray || schema.type === "array") {
+    const element =
+      rawSchema._def?.element ?? rawSchema._def?.type ?? rawSchema.element;
+    if (element) {
+      children = [{ key: "items", schema: element, rank: 0 }];
+    }
   }
 
   // Store metadata in cache (previous/next passed from parent)
@@ -345,34 +357,40 @@ function buildAugmentedSchema(schema: z.ZodTypeAny): z.ZodTypeAny {
 
   // First, recursively build children and reconstruct schema
   let augmentedSchema = schema;
+  const rawSchema = schema as any;
 
-  if (schema.type === "object") {
-    // Use extend to preserve original schema type information
-    let rebuilt = schema;
-    Object.entries(schema.shape).forEach(([key, value]) => {
-      const augmentedChild = buildAugmentedSchema(value);
-      rebuilt = rebuilt.extend({ [key]: augmentedChild });
-    });
+  if (schema instanceof z.ZodObject || schema.type === "object") {
+    let rebuilt = schema as z.ZodObject<z.ZodRawShape>;
+    const shape = rawSchema._def?.shape ?? rawSchema.shape ?? {};
+    Object.entries(shape as Record<string, z.ZodTypeAny>).forEach(
+      ([key, value]) => {
+        const augmentedChild = buildAugmentedSchema(value);
+        rebuilt = rebuilt.extend({ [key]: augmentedChild });
+      },
+    );
     augmentedSchema = rebuilt;
-  } else if (schema.type === "union") {
-    // Recreate union with augmented options
-    // @ts-ignore - Zod internal
-    const discriminator = schema._def.discriminator;
+  } else if (schema instanceof z.ZodUnion || schema.type === "union") {
+    const options =
+      (rawSchema._def?.options ?? rawSchema.def?.options ?? []) as z.ZodTypeAny[];
+    const discriminator = rawSchema._def?.discriminator;
+    const augmentedOptions = options.map((option) =>
+      buildAugmentedSchema(option),
+    );
     if (discriminator) {
-      const augmentedOptions = schema.def.options.map((option) =>
-        buildAugmentedSchema(option),
+      augmentedSchema = z.discriminatedUnion(
+        discriminator,
+        augmentedOptions as any,
       );
-      augmentedSchema = z.discriminatedUnion(discriminator, augmentedOptions);
     } else {
-      const augmentedOptions = schema.def.options.map((option) =>
-        buildAugmentedSchema(option),
-      );
       augmentedSchema = z.union(augmentedOptions);
     }
-  } else if (schema.type === "array") {
-    // Recreate array with augmented element
-    const augmentedElement = buildAugmentedSchema(schema._def.element);
-    augmentedSchema = z.array(augmentedElement);
+  } else if (schema instanceof z.ZodArray || schema.type === "array") {
+    const element =
+      rawSchema._def?.element ?? rawSchema._def?.type ?? rawSchema.element;
+    if (element) {
+      const augmentedElement = buildAugmentedSchema(element);
+      augmentedSchema = z.array(augmentedElement);
+    }
   }
 
   // Apply metadata from cache if available
@@ -391,7 +409,7 @@ function buildAugmentedSchema(schema: z.ZodTypeAny): z.ZodTypeAny {
  */
 export function augmentSchema(
   schema: z.ZodTypeAny,
-  registry: z.ZodTypeAny,
+  registry: any,
 ): z.ZodTypeAny {
   const sourceInfo = getSourceInfo();
 

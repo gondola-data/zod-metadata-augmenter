@@ -29,6 +29,9 @@ export {
 export type {
   SchemaMetadata,
   FieldMetadata,
+} from "./types";
+
+export type {
   TraversalNode,
   TraversalOptions,
   TraversalPosition,

@@ -1,15 +1,54 @@
 import { defineConfig } from "tsup";
 
-export default defineConfig({
-  entry: {
-    index: "src/index.ts",
-    "index.cli": "src/index.cli.ts",
-    cli: "src/cli.ts",
+export default [
+  {
+    entry: {
+      index: "src/index.ts",
+    },
+    format: "esm",
+    platform: "browser",
+    dts: true,
+    sourcemap: true,
+    clean: true,
+    external: [
+      "fs",
+      "path",
+      "child_process",
+      "process",
+      "os",
+      "crypto",
+      "stream",
+      "util",
+      "buffer",
+    ],
+    noExternal: [],
+    treeshake: true,
+    minify: false,
   },
-  format: "esm",
-  dts: false,
-  splitting: false,
-  sourcemap: true,
-  clean: true,
-  noExternal: ["find-package-json"],
-});
+  {
+    entry: {
+      "index.cli": "src/index.cli.ts",
+      cli: "src/cli.ts",
+    },
+    format: "esm",
+    platform: "node",
+    dts: true,
+    sourcemap: true,
+    clean: false,
+    external: [
+      "fs",
+      "path",
+      "child_process",
+      "process",
+      "os",
+      "crypto",
+      "stream",
+      "util",
+      "buffer",
+    ],
+    noExternal: ["find-package-json"],
+    treeshake: true,
+    minify: false,
+    outDir: "dist",
+  },
+];

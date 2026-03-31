@@ -13,6 +13,8 @@
     "README.md"
   ],
   "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "browser": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "bin": {
     "zod-augmenter": "./dist/cli.js"
@@ -39,7 +41,6 @@
     "example:traversal": "tsx example/traversal-demo.ts"
   },
   "dependencies": {
-    "@gondola/zod-schema-augmenter": "github:gondola-data/zod-metadata-augmenter#feat_traversal",
     "zod": "^4.0.0"
   },
   "devDependencies": {

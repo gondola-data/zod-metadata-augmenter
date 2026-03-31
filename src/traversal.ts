@@ -206,17 +206,17 @@ function collectNodes(
 
   if (!meta?.uri) {
     // Node without metadata - traverse children but don't add to map
-    if (schema.type === "object") {
-      for (const [, fieldSchema] of Object.entries(schema.shape)) {
+    if (schema instanceof z.ZodObject) {
+      for (const fieldSchema of Object.values(schema.shape) as z.ZodTypeAny[]) {
         collectNodes(fieldSchema, nodeMap);
       }
-    } else if (schema.type === "union") {
-      // @ts-ignore - Zod internal
-      for (const option of schema._def.options) {
+    } else if (schema instanceof z.ZodUnion) {
+      for (const option of schema._def.options as z.ZodTypeAny[]) {
         collectNodes(option, nodeMap);
       }
-    } else if (schema.type === "array") {
-      collectNodes(schema._def.element, nodeMap);
+    } else if (schema instanceof z.ZodArray) {
+      const arrayDef = schema._def as unknown as { element: z.ZodTypeAny };
+      collectNodes(arrayDef.element, nodeMap);
     }
     return;
   }
@@ -231,17 +231,17 @@ function collectNodes(
   });
 
   // Recursively collect from children
-  if (schema.type === "object") {
-    for (const [, fieldSchema] of Object.entries(schema.shape)) {
+  if (schema instanceof z.ZodObject) {
+    for (const fieldSchema of Object.values(schema.shape) as z.ZodTypeAny[]) {
       collectNodes(fieldSchema, nodeMap);
     }
-  } else if (schema.type === "union") {
-    // @ts-ignore - Zod internal
-    for (const option of schema._def.options) {
+  } else if (schema instanceof z.ZodUnion) {
+    for (const option of schema._def.options as z.ZodTypeAny[]) {
       collectNodes(option, nodeMap);
     }
-  } else if (schema.type === "array") {
-    collectNodes(schema._def.element, nodeMap);
+  } else if (schema instanceof z.ZodArray) {
+    const arrayDef = schema._def as unknown as { element: z.ZodTypeAny };
+    collectNodes(arrayDef.element, nodeMap);
   }
 }
 

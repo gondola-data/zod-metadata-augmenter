@@ -27,6 +27,9 @@ export type {
   FieldMetadata,
   SourceInfo,
   UnionMemberInfo,
+} from "./types";
+
+export type {
   TraversalNode,
   TraversalOptions,
   TraversalPosition,
