@@ -23,6 +23,65 @@ npm install @gondola/zod-schema-augmenter
 pnpm add @gondola/zod-schema-augmenter
 ```
 
+## Browser vs CLI Entry Points
+
+This package provides two entry points for different use cases:
+
+### Browser Entry (Default)
+
+The default entry point is browser-safe and includes only **traversal functionality**. It has no Node.js dependencies (fs, path, child_process) and works with any browser bundler.
+
+```bash
+# Install normally
+npm install @gondola/zod-schema-augmenter
+```
+
+```typescript
+// Import traversal only (browser-safe)
+import { createTraversalObject, findByUri } from "@gondola/zod-schema-augmenter";
+```
+
+**Exports:**
+- `createTraversalObject`, `findByUri`, `getNodesAtDepth`, `getPathToNode`
+- `traverseAll`, `getSiblings`, `getNodeDepth`, `countNodes`
+
+### CLI Entry
+
+The CLI entry point includes full functionality with source detection from git config and package.json.
+
+```json
+// package.json - explicitly use CLI entry
+{
+  "dependencies": {
+    "@gondola/zod-schema-augmenter": "github:gondola-data/zod-metadata-augmenter"
+  }
+}
+```
+
+```typescript
+// Import full functionality (Node.js required)
+import { augmentSchema, getSourceInfo } from "@gondola/zod-schema-augmenter/cli";
+```
+
+**CLI Usage:**
+```bash
+npx zod-augmenter build --input schema.ts --output dist/schema.json
+```
+
+Or import programmatically:
+```typescript
+import { augmentSchema, createTraversalObject } from "@gondola/zod-schema-augmenter/cli";
+```
+
+### Entry Point Summary
+
+| Entry | Import Path | Use Case |
+|-------|-------------|----------|
+| Default (`.`) | `@gondola/zod-schema-augmenter` | Browser apps - traversal only |
+| CLI (`./cli`) | `@gondola/zod-schema-augmenter/cli` | Node.js/CLI - full features |
+
+---
+
 ## Quick Start
 
 ### Runtime Usage

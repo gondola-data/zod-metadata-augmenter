@@ -21,7 +21,7 @@ import {
   getNodeDepth,
   countNodes,
   type TraversalNode,
-} from "../src";
+} from "../src/index.cli";
 import { DataProviderSchema } from "./schema";
 import { DATA_PROVIDER_TYPES } from "./types/data-provider";
 
