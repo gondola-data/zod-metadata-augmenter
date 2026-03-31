@@ -1,7 +1,7 @@
 {
   "name": "@gondola/zod-schema-augmenter",
   "author": "jason.grein@gondola.io",
-  "version": "0.0.1",
+  "version": "0.1.0",
   "type": "module",
   "files": [
     "dist",
