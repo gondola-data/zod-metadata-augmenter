@@ -10,7 +10,7 @@
  *
  * ```typescript
  * // For CLI/Node.js runtime
- * import { augmentSchema, createTraversalObject } from "@gondola/zod-schema-augmenter/cli";
+ * import { augmentSchema, createTraversalObject } from "@gondola-data/zod-schema-augmenter/cli";
  * ```
  *
  * Or use the CLI directly:

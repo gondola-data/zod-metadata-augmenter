@@ -10,7 +10,7 @@
  * ## Usage
  *
  * ```typescript
- * import { createTraversalObject, type TraversalNode } from "@gondola/zod-schema-augmenter";
+ * import { createTraversalObject, type TraversalNode } from "@gondola-data/zod-schema-augmenter";
  * ```
  */
 
