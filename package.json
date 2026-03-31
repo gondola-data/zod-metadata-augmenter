@@ -2,8 +2,12 @@
   "name": "@gondola/zod-schema-augmenter",
   "author": "jason.grein@gondola.io",
   "version": "0.0.1",
-  "private": true,
   "type": "module",
+  "files": [
+    "dist",
+    "package.json",
+    "README.md"
+  ],
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "bin": {
@@ -11,8 +15,13 @@
   },
   "exports": {
     ".": {
+      "browser": "./dist/index.js",
       "import": "./dist/index.js",
       "types": "./dist/index.d.ts"
+    },
+    "./cli": {
+      "import": "./dist/index.cli.js",
+      "types": "./dist/index.cli.d.ts"
     }
   },
   "scripts": {
@@ -21,10 +30,12 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
-    "example": "tsx example/index.ts",
-    "build:example": "tsx example/build-schema.ts"
+    "example:augmenter": "tsx example/index.ts",
+    "build:example": "tsx example/build-schema.ts",
+    "example:traversal": "tsx example/traversal-demo.ts"
   },
   "dependencies": {
+    "@gondola/zod-schema-augmenter": "github:gondola-data/zod-metadata-augmenter#feat_traversal",
     "zod": "^4.0.0"
   },
   "devDependencies": {
