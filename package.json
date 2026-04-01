@@ -1,7 +1,7 @@
 {
   "name": "@gondola-data/zod-schema-augmenter",
   "author": "jason.grein@gondola.io",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "type": "module",
   "repository": "https://github.com/gondola-data/zod-metadata-augmenter.git",
   "publishConfig": {
@@ -17,7 +17,7 @@
   "browser": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "bin": {
-    "zod-augmenter": "./dist/cli.js"
+    "zod-augmenter": "./dist/cli.cjs"
   },
   "exports": {
     ".": {
@@ -26,8 +26,9 @@
       "types": "./dist/index.d.ts"
     },
     "./cli": {
+      "types": "./dist/index.cli.d.ts",
       "import": "./dist/index.cli.js",
-      "types": "./dist/index.cli.d.ts"
+      "require": "./dist/index.cli.cjs"
     }
   },
   "scripts": {
