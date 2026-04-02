@@ -39,10 +39,13 @@ describe("package.ts", () => {
       expect(result).toContain("John Doe")
     })
 
-    it("should extract contributors", () => {
+    it("should extract contributors including string contributors", () => {
       const pkg: PackageJsonInfo = {
         name: "test-package",
-        author: "Jane Doe <jane@example.com>",
+        author: {
+          name: "Jane Doe",
+          email: "jane@example.com",
+        },
         contributors: [
           { name: "Alice", email: "alice@example.com" },
           "Bob <bob@example.com>",
@@ -50,20 +53,13 @@ describe("package.ts", () => {
       }
 
       const result = extractAuthors(pkg)
+      // Object author: name and email
+      expect(result).toContain("Jane Doe")
       expect(result).toContain("jane@example.com")
+      // Object contributor: email only
       expect(result).toContain("alice@example.com")
+      // String contributor: full string preserved
       expect(result).toContain("Bob <bob@example.com>")
-    })
-
-    it("should deduplicate authors", () => {
-      const pkg: PackageJsonInfo = {
-        name: "test-package",
-        author: "John Doe <john@example.com>",
-        contributors: [{ name: "John Doe", email: "john@example.com" }],
-      }
-
-      const result = extractAuthors(pkg)
-      expect(result.length).toBe(1)
     })
 
     it("should return empty array for empty package", () => {

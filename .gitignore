@@ -43,3 +43,7 @@ coverage/
 # Temporary files
 *.tmp
 *.temp
+
+# Opencode Agent Control
+.opencode/*
+!.opencode/context/

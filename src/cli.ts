@@ -131,13 +131,44 @@ Example:
 `);
 }
 
+/**
+ * Validate that a path is safe (no path traversal, stays within project)
+ */
+function validatePath(inputPath: string, type: "input" | "output"): void {
+  const resolved = path.resolve(process.cwd(), inputPath);
+  
+  // Check for path traversal attempts
+  if (inputPath.includes("..")) {
+    throw new Error(
+      `Invalid ${type} path: path traversal not allowed (\`..\` found)`
+    );
+  }
+  
+  // For input files, ensure they're within the project
+  if (type === "input" && !fs.existsSync(resolved)) {
+    throw new Error(`Input file not found: ${inputPath}`);
+  }
+}
+
+/**
+ * Validate registry and concept names (alphanumeric + hyphen only)
+ */
+function validateName(name: string, type: "registry" | "concept"): void {
+  if (!/^[a-zA-Z0-9-]+$/.test(name)) {
+    throw new Error(
+      `Invalid ${type} name "${name}": must contain only alphanumeric characters and hyphens`
+    );
+  }
+}
+
 function runBuild() {
   const args = parseArgs();
 
-  // Validate input file exists
-  if (!fs.existsSync(args.input)) {
-    throw new Error(`Input file not found: ${args.input}`);
-  }
+  // Validate paths and names
+  validatePath(args.input, "input");
+  validatePath(args.output, "output");
+  validateName(args.registry, "registry");
+  validateName(args.concept, "concept");
 
   // Ensure output directory exists
   const outputDir = path.dirname(args.output);

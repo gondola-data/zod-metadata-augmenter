@@ -21,7 +21,9 @@ import {
 import type { TraversalNode, SchemaMetadata } from "../src/index";
 
 describe("createTraversalObject", () => {
-  let registry: z.ZodTypeAny;
+  // Using any type because Zod's registry API is experimental and TypeScript types are incomplete
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  let registry: any;
 
   beforeEach(() => {
     registry = z.registry<{ registry: string; concept: string }>();

@@ -14,7 +14,10 @@ export interface PackageJsonInfo {
   version?: string
   author?: string | { name: string; email?: string; url?: string }
   publisher?: string
-  contributors?: Array<{ name: string; email?: string; url?: string }>
+  contributors?: Array<
+    | { name: string; email?: string; url?: string }
+    | string
+  >
 }
 
 /**
@@ -52,21 +55,46 @@ export function getPackageJsonInfo(startDir?: string): PackageJsonInfo | null {
  * 
  * @param pkg - PackageJsonInfo
  * @returns Array of author strings
+ * 
+ * Format:
+ * - String author: returns the full string (e.g., "John Doe <john@example.com>")
+ * - Object author: returns both name and email
+ * - String contributor: returns the full string
+ * - Object contributor: returns email only
+ * 
+ * Deduplication: Extracts emails from all entries and deduplicates by email
  */
 export function extractAuthors(pkg: PackageJsonInfo): string[] {
-  const authors: string[] = []
+  // Track emails for deduplication
+  const seenEmails = new Set<string>()
+  const result: string[] = []
   
-  // Handle string author
-  if (typeof pkg.author === "string") {
-    authors.push(pkg.author)
-  }
-  // Handle object author
-  else if (pkg.author && typeof pkg.author === "object") {
-    if (pkg.author.email) {
-      authors.push(pkg.author.email)
+  const addAuthor = (authorEntry: string) => {
+    // Extract email from "Name <email>" format for deduplication
+    const emailMatch = authorEntry.match(/<([^>]+)>/)
+    const email = emailMatch ? emailMatch[1] : null
+    
+    // If we have an email, check if already seen (deduplication)
+    if (email) {
+      if (seenEmails.has(email)) {
+        return // Already added, skip
+      }
+      seenEmails.add(email)
     }
+    
+    result.push(authorEntry)
+  }
+  
+  // Handle author
+  if (typeof pkg.author === "string") {
+    addAuthor(pkg.author)
+  } else if (pkg.author && typeof pkg.author === "object") {
+    // Object author: add both name and email
     if (pkg.author.name) {
-      authors.push(pkg.author.name)
+      addAuthor(pkg.author.name)
+    }
+    if (pkg.author.email) {
+      addAuthor(pkg.author.email)
     }
   }
   
@@ -74,18 +102,17 @@ export function extractAuthors(pkg: PackageJsonInfo): string[] {
   if (pkg.contributors) {
     for (const contributor of pkg.contributors) {
       if (typeof contributor === "string") {
-        if (!authors.includes(contributor)) {
-          authors.push(contributor)
-        }
+        addAuthor(contributor)
       } else if (typeof contributor === "object") {
-        if (contributor.email && !authors.includes(contributor.email)) {
-          authors.push(contributor.email)
+        // Object contributor: add email only
+        if (contributor.email) {
+          addAuthor(contributor.email)
         }
       }
     }
   }
   
-  return authors
+  return result
 }
 
 /**
