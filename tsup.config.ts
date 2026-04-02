@@ -3,7 +3,7 @@ import { defineConfig } from "tsup";
 export default [
   {
     entry: {
-      index: "src/index.ts",
+      "index.browser": "src/index.browser.ts",
     },
     format: "esm",
     platform: "browser",
@@ -27,6 +27,7 @@ export default [
   },
   {
     entry: {
+      index: "src/index.ts",
       "index.cli": "src/index.cli.ts",
     },
     format: ["esm", "cjs"],

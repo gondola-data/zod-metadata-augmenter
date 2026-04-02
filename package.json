@@ -14,16 +14,20 @@
   ],
   "main": "./dist/index.js",
   "module": "./dist/index.js",
-  "browser": "./dist/index.js",
+  "browser": "./dist/index.browser.js",
   "types": "./dist/index.d.ts",
   "bin": {
     "zod-augmenter": "./dist/cli.cjs"
   },
   "exports": {
     ".": {
-      "browser": "./dist/index.js",
+      "browser": "./dist/index.browser.js",
       "import": "./dist/index.js",
       "types": "./dist/index.d.ts"
+    },
+    "./browser": {
+      "types": "./dist/index.browser.d.ts",
+      "import": "./dist/index.browser.js"
     },
     "./cli": {
       "types": "./dist/index.cli.d.ts",
@@ -37,6 +41,10 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
+    "check:exports": "node scripts/check-exports.mjs",
+    "check:browser-bundle": "node scripts/check-browser-bundle.mjs",
+    "check:no-browser-regression": "npm run build && npm run check:exports && npm run check:browser-bundle",
+    "ci:smoke:vite": "node scripts/ci-vite-smoke.mjs",
     "example:augmenter": "tsx example/index.ts",
     "build:example": "tsx example/build-schema.ts",
     "example:traversal": "tsx example/traversal-demo.ts"

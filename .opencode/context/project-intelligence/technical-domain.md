@@ -19,14 +19,15 @@
 | Package Manager | npm | - | Standard Node ecosystem |
 | Schema Validation | Zod | ^4.0.0 | Core schema manipulation |
 | Testing | Vitest | ^2.0.0 | Fast unit tests |
-| Build | tsup | ^8.0.0 | Bundle to ESM/CJS |
+| Build | tsup | ^8.0.0 | Bundle separate browser/node/cli entries |
 
 ## Project Structure
 
 ```
 zod-metadata-augmenter/
 ├── src/
-│   ├── index.ts           # Browser entry (traversal only)
+│   ├── index.browser.ts   # Browser entry (traversal only)
+│   ├── index.ts           # Node/full library entry
 │   ├── index.cli.ts      # CLI exports
 │   ├── augment.ts         # Core augmentation logic
 │   ├── traversal.ts       # Schema tree traversal utilities
@@ -64,7 +65,7 @@ Pass 2 (buildAugmentedSchema): Rebuild tree → apply metadata from cache
 |----------|-----------|--------|
 | Zod v4 | Stable meta() API | Schema augmentation works reliably |
 | SKOS taxonomy | Industry-standard metadata format | Interoperable, meaningful URIs |
-| Browser-safe core | No Node.js deps in index.ts | Can use in browser environments |
+| Browser-safe core | No Node.js deps in index.browser.ts | Can use in browser environments |
 | Two-pass traversal | Immutable Zod schema semantics | Correct metadata propagation |
 
 ## Development Environment

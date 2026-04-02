@@ -27,9 +27,10 @@ pnpm add @gondola-data/zod-schema-augmenter
 
 This package provides two entry points for different use cases:
 
-### Browser Entry (Default)
+### Browser Entry (Explicit)
 
-The default entry point is browser-safe and includes only **traversal functionality**. It has no Node.js dependencies (fs, path, child_process) and works with any browser bundler.
+The browser entry point is explicitly exposed at `./browser` and includes only traversal functionality.
+It has no Node.js dependencies (`fs`, `path`, `child_process`) and is safe for browser bundlers.
 
 ```bash
 # Install normally
@@ -38,16 +39,16 @@ npm install @gondola-data/zod-schema-augmenter
 
 ```typescript
 // Import traversal only (browser-safe)
-import { createTraversalObject, findByUri } from "@gondola-data/zod-schema-augmenter";
+import { createTraversalObject, findByUri } from "@gondola-data/zod-schema-augmenter/browser";
 ```
 
 **Exports:**
 - `createTraversalObject`, `findByUri`, `getNodesAtDepth`, `getPathToNode`
 - `traverseAll`, `getSiblings`, `getNodeDepth`, `countNodes`
 
-### CLI Entry
+### Node/CLI Entry
 
-The CLI entry point includes full functionality with source detection from git config and package.json.
+The default/node entry (`.`) and CLI entry include full functionality with source detection from git config and package.json.
 
 ```json
 // package.json - explicitly use CLI entry
@@ -59,8 +60,8 @@ The CLI entry point includes full functionality with source detection from git c
 ```
 
 ```typescript
-// Import full functionality (Node.js required)
-import { augmentSchema, getSourceInfo } from "@gondola-data/zod-schema-augmenter/cli";
+// Import full functionality (Node.js runtime)
+import { augmentSchema, getSourceInfo } from "@gondola-data/zod-schema-augmenter";
 ```
 
 **CLI Usage:**
@@ -77,7 +78,8 @@ import { augmentSchema, createTraversalObject } from "@gondola-data/zod-schema-a
 
 | Entry | Import Path | Use Case |
 |-------|-------------|----------|
-| Default (`.`) | `@gondola-data/zod-schema-augmenter` | Browser apps - traversal only |
+| Browser (`./browser`) | `@gondola-data/zod-schema-augmenter/browser` | Browser apps - traversal only |
+| Default (`.`) | `@gondola-data/zod-schema-augmenter` | Node.js runtime - full API |
 | CLI (`./cli`) | `@gondola-data/zod-schema-augmenter/cli` | Node.js/CLI - full features |
 
 ---
