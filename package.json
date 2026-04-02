@@ -1,0 +1,55 @@
+{
+  "name": "@gondola-data/zod-schema-augmenter",
+  "author": "jason.grein@gondola.io",
+  "version": "0.1.3",
+  "type": "module",
+  "repository": "https://github.com/gondola-data/zod-metadata-augmenter.git",
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com"
+  },
+  "files": [
+    "dist",
+    "package.json",
+    "README.md"
+  ],
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "browser": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "bin": {
+    "zod-augmenter": "./dist/cli.cjs"
+  },
+  "exports": {
+    ".": {
+      "browser": "./dist/index.js",
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    },
+    "./cli": {
+      "types": "./dist/index.cli.d.ts",
+      "import": "./dist/index.cli.js",
+      "require": "./dist/index.cli.cjs"
+    }
+  },
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "example:augmenter": "tsx example/index.ts",
+    "build:example": "tsx example/build-schema.ts",
+    "example:traversal": "tsx example/traversal-demo.ts"
+  },
+  "dependencies": {
+    "zod": "^4.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "find-package-json": "^1.2.0",
+    "tsup": "^8.0.0",
+    "tsx": "^4.21.0",
+    "typescript": "^5.0.0",
+    "vitest": "^2.0.0"
+  }
+}
