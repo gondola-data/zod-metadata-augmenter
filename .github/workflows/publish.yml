@@ -38,6 +38,18 @@ jobs:
       - name: Build the project
         run: pnpm run build
 
+      - name: Typecheck
+        run: pnpm run typecheck
+
+      - name: Run tests
+        run: pnpm run test
+
+      - name: Verify browser entrypoint regressions
+        run: pnpm run check:no-browser-regression
+
+      - name: Run Vite smoke test against packed tarball
+        run: pnpm run ci:smoke:vite
+
       - name: Extract version
         id: version
         run: |

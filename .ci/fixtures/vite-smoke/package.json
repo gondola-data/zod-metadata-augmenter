@@ -1,0 +1,11 @@
+{
+  "name": "vite-smoke",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "vite build"
+  },
+  "dependencies": {
+    "vite": "^5.4.0"
+  }
+}

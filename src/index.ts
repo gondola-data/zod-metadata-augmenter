@@ -1,16 +1,15 @@
 /**
- * Zod Schema Augmenter - Browser Entry Point
+ * Zod Schema Augmenter - Node/Full Entry Point
  *
- * This is the browser-safe entry point that exports ONLY traversal functionality.
- * It has no dependencies on Node.js modules (fs, path, child_process).
+ * This entry exposes the full library API, including augmentation and sources.
+ * Browser consumers should use "./browser" for traversal-only imports.
  *
- * For CLI usage with full features (including source detection from git/package.json),
- * use the "./cli" entry point instead.
+ * For CLI usage, use the "./cli" entry point.
  *
  * ## Usage
  *
  * ```typescript
- * import { createTraversalObject, type TraversalNode } from "@gondola-data/zod-schema-augmenter";
+ * import { augmentSchema, createTraversalObject } from "@gondola-data/zod-schema-augmenter";
  * ```
  */
 
@@ -26,12 +25,25 @@ export {
   countNodes,
 } from "./traversal";
 
-// Augmentation function (browser-safe - uses Zod registry)
-export { augmentSchema } from "./augment";
+// Augmentation functions (Node/full)
+export { augmentSchema, getSourceInfo } from "./augment";
+
+// Sources (Node.js dependent)
+export {
+  getPackageJsonInfo,
+  extractAuthors,
+  extractPublishers,
+  getGitConfigInfo,
+  extractGitAuthors,
+  getCreators,
+  getPublishers,
+} from "./sources";
 
 export type {
   SchemaMetadata,
   FieldMetadata,
+  SourceInfo,
+  UnionMemberInfo,
 } from "./types";
 
 export type {
@@ -39,3 +51,5 @@ export type {
   TraversalOptions,
   TraversalPosition,
 } from "./traversal";
+
+export type { PackageJsonInfo, GitConfigInfo } from "./sources";
