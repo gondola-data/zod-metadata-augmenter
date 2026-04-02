@@ -26,6 +26,9 @@ export {
   countNodes,
 } from "./traversal";
 
+// Augmentation function (browser-safe - uses Zod registry)
+export { augmentSchema } from "./augment";
+
 export type {
   SchemaMetadata,
   FieldMetadata,

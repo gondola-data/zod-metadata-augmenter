@@ -54,7 +54,8 @@ import * as z from "zod";
 import type { SourceInfo } from "./types";
 import { getSourceInfo, getCreators, getPublishers } from "./sources";
 
-const now = new Date();
+// Maximum recursion depth to prevent stack overflow
+const MAX_DEPTH = 100;
 
 /**
  * Convert a schema name to a URL-friendly slug
@@ -190,9 +191,23 @@ function _nodeType(schema: z.ZodTypeAny, count: number = 0): string {
 }
 
 /**
- * Cache for storing calculated metadata during collection phase
+ * Type-safe registry interface for augmentation
  */
-const metadataCache = new Map<z.ZodTypeAny, Record<string, unknown>>();
+interface AugmentRegistry {
+  get(schema: z.ZodTypeAny): { registry: string; concept: string } | undefined;
+}
+
+/**
+ * Cache for storing calculated metadata during collection phase
+ * Passed as parameter to support concurrent calls
+ */
+type MetadataCache = Map<z.ZodTypeAny, Record<string, unknown>>;
+
+/**
+ * Visited schemas set for circular reference detection
+ * Passed as parameter to support concurrent calls
+ */
+type VisitedSchemas = WeakSet<z.ZodTypeAny>;
 
 /**
  * Pass 1: Collect all metadata into cache
@@ -211,24 +226,49 @@ const metadataCache = new Map<z.ZodTypeAny, Record<string, unknown>>();
  *               cannot know it until we're inside the parent's iteration.
  * @param _previousUri - Optional override for the previous URI
  * @param _nextUri - Optional override for the next URI
+ * @param now - Timestamp for metadata creation
+ * @param depth - Current recursion depth for depth limiting
+ * @param cache - Metadata cache (passed for concurrent call safety)
+ * @param visited - Visited schemas set (passed for concurrent call safety)
  */
 function collectMetadata(
   schema: z.ZodTypeAny,
-  registry: any,
+  registry: AugmentRegistry,
   sourceInfo: SourceInfo,
   broaderUri: string | null,
   _uri: string | null = null,
   _previousUri: string | null = null,
   _nextUri: string | null = null,
+  now: Date = new Date(),
+  depth: number = 0,
+  cache: MetadataCache = new Map(),
+  visited: VisitedSchemas = new WeakSet(),
 ): void {
+  // Circular reference detection
+  if (visited.has(schema)) {
+    throw new Error(
+      `Circular reference detected in Zod schema at depth ${depth}. ` +
+      `Schemas must not contain circular references.`
+    );
+  }
+  visited.add(schema);
+
+  // Depth limit to prevent stack overflow
+  if (depth > MAX_DEPTH) {
+    throw new Error(
+      `Maximum recursion depth (${MAX_DEPTH}) exceeded. ` +
+      `Schema structure is too deeply nested.`
+    );
+  }
   // Use provided _uri or generate from schema name
-  const name = getSchemaName(schema) || registry.get(schema)?.concept;
+  const registryEntry = registry.get(schema);
+  const name = getSchemaName(schema) || registryEntry?.concept;
   const uri =
     _uri ??
     generateUri(
-      broaderUri || `#/${registry.get(schema).registry}`,
+      broaderUri || (registryEntry ? `#/${registryEntry.registry}` : "#/"),
       schema,
-      name,
+      name ?? null,
     );
 
   // Get children based on schema type - include key, schema, and rank
@@ -297,7 +337,7 @@ function collectMetadata(
   }
 
   // Store metadata in cache (previous/next passed from parent)
-  metadataCache.set(schema, {
+  cache.set(schema, {
     uri,
     broader: broaderUri,
     narrower: children.map(({ key, schema: child }) => {
@@ -342,6 +382,10 @@ function collectMetadata(
       childUri,
       previousUri,
       nextUri,
+      now,
+      depth + 1,
+      cache,
+      visited,
     );
   });
 }
@@ -350,10 +394,14 @@ function collectMetadata(
  * Pass 2: Build augmented schema tree with metadata applied
  *
  * @param schema - The Zod schema to augment
+ * @param cache - Metadata cache from collection phase
  * @returns New schema with all metadata applied
  */
-function buildAugmentedSchema(schema: z.ZodTypeAny): z.ZodTypeAny {
-  const cached = metadataCache.get(schema);
+function buildAugmentedSchema(
+  schema: z.ZodTypeAny,
+  cache: MetadataCache,
+): z.ZodTypeAny {
+  const cached = cache.get(schema);
 
   // First, recursively build children and reconstruct schema
   let augmentedSchema = schema;
@@ -364,7 +412,7 @@ function buildAugmentedSchema(schema: z.ZodTypeAny): z.ZodTypeAny {
     const shape = rawSchema._def?.shape ?? rawSchema.shape ?? {};
     Object.entries(shape as Record<string, z.ZodTypeAny>).forEach(
       ([key, value]) => {
-        const augmentedChild = buildAugmentedSchema(value);
+        const augmentedChild = buildAugmentedSchema(value, cache);
         rebuilt = rebuilt.extend({ [key]: augmentedChild });
       },
     );
@@ -374,7 +422,7 @@ function buildAugmentedSchema(schema: z.ZodTypeAny): z.ZodTypeAny {
       (rawSchema._def?.options ?? rawSchema.def?.options ?? []) as z.ZodTypeAny[];
     const discriminator = rawSchema._def?.discriminator;
     const augmentedOptions = options.map((option) =>
-      buildAugmentedSchema(option),
+      buildAugmentedSchema(option, cache),
     );
     if (discriminator) {
       augmentedSchema = z.discriminatedUnion(
@@ -388,7 +436,7 @@ function buildAugmentedSchema(schema: z.ZodTypeAny): z.ZodTypeAny {
     const element =
       rawSchema._def?.element ?? rawSchema._def?.type ?? rawSchema.element;
     if (element) {
-      const augmentedElement = buildAugmentedSchema(element);
+      const augmentedElement = buildAugmentedSchema(element, cache);
       augmentedSchema = z.array(augmentedElement);
     }
   }
@@ -409,19 +457,32 @@ function buildAugmentedSchema(schema: z.ZodTypeAny): z.ZodTypeAny {
  */
 export function augmentSchema(
   schema: z.ZodTypeAny,
-  registry: any,
+  registry: AugmentRegistry,
 ): z.ZodTypeAny {
   const sourceInfo = getSourceInfo();
+  const now = new Date();
 
-  // Clear cache and run two-pass augmentation
-  metadataCache.clear();
+  // Create fresh caches for this augmentation (supports concurrent calls)
+  const cache: MetadataCache = new Map();
+  const visited: VisitedSchemas = new WeakSet();
+
+  const registryEntry = registry.get(schema);
+  const baseUri = registryEntry ? `#/${registryEntry.registry}` : "#/";
+
   collectMetadata(
     schema,
     registry,
     sourceInfo,
-    `#/${registry.get(schema).registry}`,
+    baseUri,
+    null,
+    null,
+    null,
+    now,
+    0,
+    cache,
+    visited,
   );
-  return buildAugmentedSchema(schema);
+  return buildAugmentedSchema(schema, cache);
 }
 
 export { getSourceInfo } from "./sources";
