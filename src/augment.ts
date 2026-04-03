@@ -133,8 +133,8 @@ function getSchemaName(schema: z.ZodTypeAny): string | null {
 /**
  * Determine the node type based on nesting depth
  *
- * Traverses a Zod schema to find how far the current node is from the end
- * of nested objects/unions. Used for SKOS-inspired URI generation:
+ * Traverses a Zod schema to find how far the current node is from the deepest
+ * descendant path. Used for SKOS-inspired URI generation:
  * - "resource": top-level schema (count === 0)
  * - "item": one level deep (count === 1)
  * - "concept": more than one level deep (count > 1)
@@ -147,11 +147,21 @@ function _nodeType(schema: z.ZodTypeAny, count: number = 0): string {
   const rawSchema = schema as any;
   const schemaType = schema.type;
 
+  const classifyDepth = (depth: number): string => {
+    if (depth > 1) return "concept";
+    if (depth === 1) return "item";
+    return "resource";
+  };
+
+  const nodeTypeDepth = (nodeType: string): number => {
+    if (nodeType === "concept") return 2;
+    if (nodeType === "item") return 1;
+    return 0;
+  };
+
   // Base case: primitive/leaf types (string, number, boolean, enum, etc.)
   if (!["object", "union", "array"].includes(schemaType)) {
-    if (count > 1) return "concept";
-    if (count === 1) return "item";
-    return "resource";
+    return classifyDepth(count);
   }
 
   // Handle arrays - traverse into the element type
@@ -160,34 +170,38 @@ function _nodeType(schema: z.ZodTypeAny, count: number = 0): string {
     if (child) {
       return _nodeType(child, count + 1);
     }
-    return _nodeType(schema, count + 1);
+    return classifyDepth(count + 1);
   }
 
-  // Handle objects - traverse into first field
+  // Handle objects - classify using the deepest child path
   if (schemaType === "object") {
     const shape = rawSchema._def?.shape ?? {};
     const keys = Object.keys(shape);
     if (keys.length > 0) {
-      return _nodeType(shape[keys[0]], count + 1);
+      const deepestChildDepth = Math.max(
+        ...keys.map((key) => nodeTypeDepth(_nodeType(shape[key], count + 1))),
+      );
+      return classifyDepth(deepestChildDepth);
     }
     // Empty object - treat as leaf
-    if (count > 1) return "concept";
-    if (count === 1) return "item";
-    return "resource";
+    return classifyDepth(count);
   }
 
-  // Handle unions (including discriminatedUnion) - traverse first option
+  // Handle unions (including discriminatedUnion) - classify using deepest option
   if (schemaType === "union") {
     const options = rawSchema._def?.options ?? rawSchema.def?.options ?? [];
     if (options.length > 0) {
-      return _nodeType(options[0], count + 1);
+      const deepestOptionDepth = Math.max(
+        ...options.map((option: z.ZodTypeAny) =>
+          nodeTypeDepth(_nodeType(option, count + 1)),
+        ),
+      );
+      return classifyDepth(deepestOptionDepth);
     }
   }
 
   // Fallback for any unexpected case
-  if (count > 1) return "concept";
-  if (count === 1) return "item";
-  return "resource";
+  return classifyDepth(count);
 }
 
 /**

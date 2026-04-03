@@ -100,6 +100,35 @@ describe("augment.ts", () => {
       const meta = getMetadata(augmented)
       expect(meta?.uri).toContain("my-app")
     })
+
+    it("should classify mixed narrow resource and concept roots as concepts", () => {
+      const ColumnSchema = z.object({
+        name: z.string().meta({ rank: 0 }),
+        type: z.string().meta({ rank: 1 }),
+      }).meta({ rank: 0 })
+
+      const TableSchema = z.object({
+        name: z.string().meta({ rank: 0 }),
+        type: z.string().meta({ rank: 1 }),
+        columns: z.array(ColumnSchema).meta({ rank: 2 }),
+      }).meta({ rank: 0 })
+
+      const DataModelSchema = z.object({
+        name: z.string().optional().meta({ rank: 0 }),
+        desc: z.string().optional().meta({ rank: 1 }),
+        tables: z.array(TableSchema).meta({ rank: 2 }),
+      })
+
+      registry.add(DataModelSchema, { registry: "taxonomy", concept: "data-model" });
+      const augmented = augmentSchema(DataModelSchema, registry);
+
+      const meta = getMetadata(augmented)
+
+      // Expected to fail until root URI classification accounts for mixed
+      // narrow resource and concept branches rather than only the first branch.
+      expect(meta?.uri).toContain("/concept/data-model")
+      expect(meta?.uri).not.toContain("/item/data-model")
+    })
   })
 
   describe("Discriminated Union Augmentation", () => {
