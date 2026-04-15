@@ -159,6 +159,16 @@ function _nodeType(schema: z.ZodTypeAny, count: number = 0): string {
     return 0;
   };
 
+  // Unwrap wrapper types (optional, default, nullable, nullish, readonly)
+  // These types have an innerType that contains the actual schema
+  if (["optional", "default", "nullable", "nullish", "readonly"].includes(schemaType)) {
+    const inner = rawSchema._def?.innerType;
+    if (inner) {
+      return _nodeType(inner, count + 1);
+    }
+    return classifyDepth(count + 1);
+  }
+
   // Base case: primitive/leaf types (string, number, boolean, enum, etc.)
   if (!["object", "union", "array"].includes(schemaType)) {
     return classifyDepth(count);

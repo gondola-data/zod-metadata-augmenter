@@ -129,6 +129,28 @@ describe("augment.ts", () => {
       expect(meta?.uri).toContain("/concept/data-model")
       expect(meta?.uri).not.toContain("/item/data-model")
     })
+
+    it("should classify flat object with primitive/array fields as concept URI", () => {
+      // A flat object schema with only primitive fields and arrays of primitives
+      // (like SKOS concept properties: uri, prefLabel, broader, narrower)
+      // should be classified as concept -> resource URI, not item -> resource URI
+      const ontologyConceptSchema = z
+        .object({
+          uri: z.string().meta({ rank: 0 }),
+          prefLabel: z.string().meta({ rank: 1 }),
+          description: z.string().optional().meta({ rank: 2 }),
+          broader: z.array(z.string()).default([]).meta({ rank: 3 }),
+          narrower: z.array(z.string()).default([]).meta({ rank: 4 }),
+        })
+        .meta({ rank: 1 })
+
+      registry.add(ontologyConceptSchema, { registry: "taxonomy", concept: "ontology-concept" });
+      const augmented = augmentSchema(ontologyConceptSchema, registry);
+
+      const meta = getMetadata(augmented)
+      expect(meta?.uri).toContain("/concept/ontology-concept")
+      expect(meta?.uri).not.toContain("/item/ontology-concept")
+    })
   })
 
   describe("Discriminated Union Augmentation", () => {
